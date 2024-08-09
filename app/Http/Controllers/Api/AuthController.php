@@ -22,21 +22,20 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'password' =>  Hash::make($request->password),
             ]);
-            if($user) {
-                $accessToken = $user->createToken('authToken')->accessToken;
-                return ResponseHelper::successResponse(
-                    message: 'User registered successfully',
-                    data: [
-                        'user' => $user,
-                        'token' => 'Bearer '.$accessToken,
-                    ],
-                    statusCode: 201,
-                );
-            }else {
+            if(!$user) {
                 return ResponseHelper::errorResponse(
                     message: 'Failed to register user',
                 );
             }
+            $accessToken = $user->createToken('authToken')->accessToken;
+            return ResponseHelper::successResponse(
+                message: 'User registered successfully',
+                data: [
+                    'user' => $user,
+                    'token' => 'Bearer '.$accessToken,
+                ],
+                statusCode: 201,
+            );
         }catch (\Exception $e) {
             Log::error($e->getMessage());
             return ResponseHelper::errorResponse(
@@ -46,7 +45,8 @@ class AuthController extends Controller
         }
 
     }
-    public function login(UserLoginRequest $request)
+
+    public function login(UserLoginRequest $request): JsonResponse
     {
         try {
             $credentials = $request->only('email', 'password');
@@ -75,4 +75,27 @@ class AuthController extends Controller
             );
         }
     }
+
+    public function authUser(Request $request): JsonResponse
+    {
+        if(!auth()->user()){
+            return ResponseHelper::errorResponse(
+                message: 'User not authenticated',
+                statusCode: 401,
+            );
+        }
+        return ResponseHelper::successResponse(
+            message: 'User details',
+            data: auth()->user(),
+        );
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->token()->revoke();
+        return ResponseHelper::successResponse(
+            message: 'User logged out successfully',
+        );
+    }
+
 }
