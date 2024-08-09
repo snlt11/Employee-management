@@ -48,6 +48,31 @@ class AuthController extends Controller
     }
     public function login(UserLoginRequest $request)
     {
-
+        try {
+            $credentials = $request->only('email', 'password');
+            $attempt = auth()->attempt($credentials);
+            if (!$attempt) {
+                return ResponseHelper::errorResponse(
+                    message: 'Invalid credentials',
+                    statusCode: 401,
+                );
+            }
+            $user = auth()->user();
+            $accessToken = $user->createToken('authToken')->accessToken;
+            return ResponseHelper::successResponse(
+                message: 'User logged in successfully',
+                data: [
+                    'user' => $user,
+                    'token' => 'Bearer '.$accessToken,
+                ],
+                statusCode: 200,
+            );
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return ResponseHelper::errorResponse(
+                message: 'An error occurred while logging in the user',
+                statusCode: 500,
+            );
+        }
     }
 }
