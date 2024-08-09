@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Helpers\ResponseHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserLoginRequest;
 use App\Http\Requests\UserRegisterRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -22,28 +19,22 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'password' =>  Hash::make($request->password),
             ]);
-            if(!$user) {
-                return ResponseHelper::errorResponse(
-                    message: 'Failed to register user',
-                );
+            if (!$user) {
+                return response()->json(['error' => 'Failed to register user'], 500);
             }
-            $accessToken = $user->createToken('authToken')->accessToken;
-            return ResponseHelper::successResponse(
-                message: 'User registered successfully',
-                data: [
+            $accessToken = "Bearer " . $user->createToken('authToken')->accessToken;
+            return response()->json([
+                "message" => 'User registered successfully',
+                "data" => [
                     'user' => $user,
-                    'token' => 'Bearer '.$accessToken,
-                ],
-                statusCode: 201,
-            );
-        }catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return ResponseHelper::errorResponse(
-                message: 'An error occurred while registering the user',
-                statusCode: 500,
-            );
+                    'token' => $accessToken,
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => $e->getMessage(),
+            ], 500);
         }
-
     }
 
     public function login(UserLoginRequest $request): JsonResponse
@@ -52,50 +43,38 @@ class AuthController extends Controller
             $credentials = $request->only('email', 'password');
             $attempt = auth()->attempt($credentials);
             if (!$attempt) {
-                return ResponseHelper::errorResponse(
-                    message: 'Invalid credentials',
-                    statusCode: 401,
-                );
+                return response()->json([
+                    "message" => 'Invalid credentials',
+                ], 401);
             }
             $user = auth()->user();
-            $accessToken = $user->createToken('authToken')->accessToken;
-            return ResponseHelper::successResponse(
-                message: 'User logged in successfully',
-                data: [
+            $accessToken = "Bearer " . $user->createToken('authToken')->accessToken;
+
+            return response()->json([
+                "message" => 'User logged in successfully',
+                "data" => [
                     'user' => $user,
-                    'token' => 'Bearer '.$accessToken,
+                    'token' => $accessToken,
                 ],
-                statusCode: 200,
-            );
+            ], 201);
         } catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return ResponseHelper::errorResponse(
-                message: 'An error occurred while logging in the user',
-                statusCode: 500,
-            );
+            return response()->json([
+                "message" => $e->getMessage(),
+            ], 500);
         }
     }
 
-    public function authUser(Request $request): JsonResponse
+    public function authUser(): JsonResponse
     {
-        if(!auth()->user()){
-            return ResponseHelper::errorResponse(
-                message: 'User not authenticated',
-                statusCode: 401,
-            );
+        $currentUser = auth()->user();
+        if (!$currentUser) {
+            return response()->json([
+                "message" => 'User not authenticated',
+            ], 401);
         }
-        return ResponseHelper::successResponse(
-            message: 'User details',
-            data: auth()->user(),
-        );
+        return response()->json([
+            "message" => "Current user retrieved successfully",
+            "data" => auth()->user(),
+        ], 200);
     }
-
-    public function logout(Request $request): JsonResponse
-    {
-        $request->user()->token()->revoke();
-        return ResponseHelper::successResponse(
-            message: 'User logged out successfully',
-        );
-    }
-
 }
