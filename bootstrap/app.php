@@ -17,13 +17,5 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exception) {
-        if ($exception instanceof ValidationException) {
-            $errors = $exception->errors();
-            return response()->json(['message' => $errors], 400);
-        }
-
-        if ($exception instanceof ModelNotFoundException) {
-            return response()->json(['message' => 'Resource not found'], 404);
-        }
-        return response()->json(['message' => 'Internal Server Error'], 500);
+        //
     })->create();
